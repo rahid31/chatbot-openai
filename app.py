@@ -46,19 +46,31 @@ if prompt := st.chat_input(f"{message} How can I help you?"):
         message_placeholder = st.empty()
         full_response = ""
 
-        # Stream the response
-        response = client.chat.completions.create(
-            model=st.session_state.openai_model,
-            messages=st.session_state.messages,
-            stream=True,
-        )
+        try:
+            # Stream the response
+            response = client.chat.completions.create(
+                model=st.session_state.openai_model,
+                messages=st.session_state.messages,
+                stream=True,
+            )
 
-        # Display the response
-        for chunk in response:
-            if chunk.choices:
-                full_response += chunk.choices[0].delta.content or ""
-                message_placeholder.markdown(full_response + "▌")
+            # Display the response
+            for chunk in response:
+                if chunk.choices:
+                    full_response += chunk.choices[0].delta.content or ""
+                    message_placeholder.markdown(full_response + "▌")
 
-        message_placeholder.markdown(full_response)
+            message_placeholder.markdown(full_response)
+        
+        except openai.RateLimitError:
+            st.error("🚨 You have exceeded your API quota. Please check your OpenAI billing details.")
+        except openai.AuthenticationError:
+            st.error("🔑 Invalid API key. Please check your `.env` file.")
+        except openai.APIConnectionError:
+            st.error("🔌 Unable to connect to OpenAI. Please check your internet connection.")
+        except openai.OpenAIError as e:
+            st.error(f"❌ An error occurred: {str(e)}")
+        except Exception as e:
+            st.error("⚠️ An unexpected error occurred. Please try again later.")
 
     st.session_state.messages.append({"role": "assistant", "content": full_response})
